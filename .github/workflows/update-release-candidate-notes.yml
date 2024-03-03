@@ -1,0 +1,47 @@
+name: Update Release Candidate Notes
+on:
+  workflow_call:
+    inputs:
+      branch-with-candidate-code:
+        type: string
+  workflow_dispatch:
+    inputs:
+      branch-with-candidate-code:
+        description: Which branch would you like to create the release candidate from?
+        type: string
+
+jobs:
+  update:
+    name: Update
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Git
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+
+      - name: Fetch latest commit from ${{ inputs.branch-with-candidate-code }}
+        id: fetch-master
+        run: |
+          git fetch origin ${{ inputs.branch-with-candidate-code }}
+          echo "LATEST_CANDIDATE_COMMIT=$(git rev-parse origin/${{ inputs.branch-with-candidate-code }})" >> $GITHUB_OUTPUT
+
+      - name: Sync release-candidate tag
+        shell: bash
+        run: |
+          git tag -fa release-candidate origin/${{ inputs.branch-with-candidate-code }} -m "Update release-candidate tag"
+          git push origin refs/tags/release-candidate --force
+
+      - name: Update release candidate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: python3 release_manager.py candidate update
