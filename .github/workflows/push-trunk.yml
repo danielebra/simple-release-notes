@@ -1,0 +1,16 @@
+name: Push Trunk Workflow
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  update-candidate:
+    name: Update Release Candidate Notes
+    permissions:
+      id-token: write
+      contents: write
+    secrets: inherit
+    uses: ./.github/workflows/reusable-update-release-candidate-notes.yml
+    with:
+      branch-with-candidate-code: main

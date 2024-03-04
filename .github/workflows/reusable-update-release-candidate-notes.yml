@@ -12,7 +12,7 @@ on:
 
 jobs:
   update:
-    name: Update
+    name: Update Candidate Release Notes
     runs-on: ubuntu-latest
     permissions:
       id-token: write
