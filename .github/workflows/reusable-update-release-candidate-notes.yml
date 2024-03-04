@@ -22,6 +22,13 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
+      # We forcefully clone to retrieve the release_manager.py, so that it is available in consuming repositories
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          repository: "danielebra/simple-release-notes"
+          path: simple-release-notes
+
       - name: Set up Git
         run: |
           git config --global user.email "action@github.com"
@@ -44,4 +51,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
         shell: bash
-        run: python3 release_manager.py candidate update
+        run: python3 ./simple-release-notes/release_manager.py candidate update
