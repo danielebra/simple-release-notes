@@ -1,7 +1,6 @@
 # Simple Release Notes
 
-A drop-in github action to generate release notes.
-
+A batteries-included and opinionated drop-in solution to generating and managing github release notes.
 
 ## Setup
 
@@ -88,4 +87,11 @@ jobs:
     uses: danielebra/simple-release-notes/.github/workflows/reusable-create-release-notes.yml
     with:
       tag: v1.0.0
+```
+
+The default behaviour of the `reusable-create-release-notes` workflow will automatically clear the release notes from the candidate release. To disable candidate notes, you can opt-out of this via 
+
+``` yaml
+with:
+  auto-clear-release-candidate-notes: false
 ```
