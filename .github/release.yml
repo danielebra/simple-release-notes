@@ -1,0 +1,32 @@
+changelog:
+  categories:
+    - title: 🎉 New Features
+      labels:
+        - new feature
+    - title: ✨ Enhancements
+      labels:
+        - enhancement
+    - title: 🛠 Breaking Changes
+      labels:
+        - breaking change
+    - title: 🐛 Bug fixes
+      labels:
+        - bug
+    - title: ⚡️ Optimisations
+      labels:
+        - optimisation
+    - title: 🔭 Observability
+      labels:
+        - observability
+    - title: 🔒️ Security
+      labels:
+        - security
+    - title: 📝 Documentation
+      labels:
+        - documentation
+    - title: 📦️ Dependencies
+      labels:
+        - dependencies
+    - title: Other Changes
+      labels:
+        - '*'

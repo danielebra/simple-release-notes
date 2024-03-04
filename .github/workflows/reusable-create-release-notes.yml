@@ -1,0 +1,51 @@
+name: Create Release Notes
+on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+        description: Tag to be used as the latest release anchor point. Can be new or existing.
+  workflow_dispatch:
+    inputs:
+      tag:
+        required: true
+        type: string
+        description: Tag to be used as the latest release anchor point. Can be new or existing.
+
+jobs:
+  create-release:
+    name: Create Release Notes
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: python3 release_manager.py release ${{ inputs.tag }}
+
+  clear-candidate:
+    name: Clear Release Candidate
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Clear Candidate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: python3 release_manager.py candidate clear
