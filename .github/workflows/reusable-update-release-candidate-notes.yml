@@ -37,7 +37,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: "danielebra/simple-release-notes"
-          branch: enrich-notes
           path: simple-release-notes
 
       - name: Set up Git
