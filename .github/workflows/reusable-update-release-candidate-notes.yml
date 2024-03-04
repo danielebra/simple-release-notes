@@ -6,26 +6,19 @@ on:
         type: string
     outputs:
       CANDIDATE_BRANCH:
-        value: ${{ jobs.update.outputs.CANDIDATE_BRANCH }}
+        value: ${{ jobs.update-candidate.outputs.CANDIDATE_BRANCH }}
         description: The branch that was used to generate release notes from
       CANDIDATE_COMMIT:
-        value: ${{ jobs.update.outputs.CANDIDATE_COMMIT }}
+        value: ${{ jobs.update-candidate.outputs.CANDIDATE_COMMIT }}
         description: The latest commit hash from the candidate branch
   workflow_dispatch:
     inputs:
       branch-with-candidate-code:
         description: Which branch would you like to create the release candidate from?
         type: string
-    outputs:
-      CANDIDATE_BRANCH:
-        value: ${{ jobs.update.outputs.CANDIDATE_BRANCH }}
-        description: The branch that was used to generate release notes from
-      CANDIDATE_COMMIT:
-        value: ${{ jobs.update.outputs.CANDIDATE_COMMIT }}
-        description: The latest commit hash from the candidate branch
 
 jobs:
-  update:
+  update-candidate:
     name: Update Candidate Release Notes
     runs-on: ubuntu-latest
     permissions:
@@ -44,6 +37,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: "danielebra/simple-release-notes"
+          branch: enrich-notes
           path: simple-release-notes
 
       - name: Set up Git
@@ -53,25 +47,31 @@ jobs:
 
       - name: Setup pointer to candidate branch
         id: candidate-branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SPECIFIED_BRANCH: ${{ inputs.branch-with-candidate-code }}
         run: |
           # Fall back to the default branch of the repository when a candidate branch is not provided.
-          if [[ -z "${{ inputs.branch-with-candidate-code }}" ]]; then
-            DEFAULT_BRANCH=$(./simple-release-notes/release_manager.py default-branch)
-            echo "BRANCH=$DEFAULT_BRANCH" >> $GITHUB_ENV
+          if [[ -z "${SPECIFIED_BRANCH}" ]]; then
+            DEFAULT_BRANCH=$(python3 ./simple-release-notes/release_manager.py default-branch)
+            echo "Falling back the default branch of ${DEFAULT_BRANCH}"
+            echo "BRANCH=${DEFAULT_BRANCH}" >> $GITHUB_OUTPUT
           else
-            echo "BRANCH=${{ steps.candidate-branch.outputs.BRANCH }}" >> $GITHUB_ENV
+            echo "Using the provided branch of ${SPECIFIED_BRANCH}"
+            echo "BRANCH=$SPECIFIED_BRANCH" >> $GITHUB_OUTPUT
           fi
 
       - name: Fetch latest commit from ${{ steps.candidate-branch.outputs.BRANCH }}
         id: fetch
         run: |
-          git fetch origin ${{ steps.candidate-branch.outputs.DEFAULT_BRANCH }}
+          git fetch origin ${{ steps.candidate-branch.outputs.BRANCH }}
           echo "LATEST_CANDIDATE_COMMIT=$(git rev-parse origin/${{ steps.candidate-branch.outputs.BRANCH }})" >> $GITHUB_OUTPUT
 
       - name: Sync release-candidate tag
         shell: bash
         run: |
-          git tag -fa release-candidate origin/${{ inputs.branch-with-candidate-code }} -m "Update release-candidate tag"
+          git tag -fa release-candidate origin/${{ steps.candidate-branch.outputs.BRANCH }} -m "Update release-candidate tag"
           git push origin refs/tags/release-candidate --force
 
       - name: Update release candidate
