@@ -74,6 +74,8 @@ This image demonstrates a release candidate managed by the above workflow.
 
 #### Latest Release
 
+![Latest Release Notes](./images/release.png)
+
 The latest release is managed by detecting the current latest release before creating a new one. Given this spread, release notes will automatically be generated, alongside a change diff. A release will be published that is now marked as `latest`. The release title is named after the tag of the release.
 
 ``` yaml
