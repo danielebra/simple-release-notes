@@ -4,11 +4,25 @@ on:
     inputs:
       branch-with-candidate-code:
         type: string
+    outputs:
+      CANDIDATE_BRANCH:
+        value: ${{ jobs.update.outputs.CANDIDATE_BRANCH }}
+        description: The branch that was used to generate release notes from
+      CANDIDATE_COMMIT:
+        value: ${{ jobs.update.outputs.CANDIDATE_COMMIT }}
+        description: The latest commit hash from the candidate branch
   workflow_dispatch:
     inputs:
       branch-with-candidate-code:
         description: Which branch would you like to create the release candidate from?
         type: string
+    outputs:
+      CANDIDATE_BRANCH:
+        value: ${{ jobs.update.outputs.CANDIDATE_BRANCH }}
+        description: The branch that was used to generate release notes from
+      CANDIDATE_COMMIT:
+        value: ${{ jobs.update.outputs.CANDIDATE_COMMIT }}
+        description: The latest commit hash from the candidate branch
 
 jobs:
   update:
@@ -17,6 +31,9 @@ jobs:
     permissions:
       id-token: write
       contents: write
+    outputs:
+      CANDIDATE_BRANCH: ${{ steps.candidate-branch.outputs.BRANCH }}
+      CANDIDATE_COMMIT: ${{ steps.fetch.outputs.LATEST_CANDIDATE_COMMIT }}
 
     steps:
       - name: Check out code
@@ -34,11 +51,22 @@ jobs:
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
 
-      - name: Fetch latest commit from ${{ inputs.branch-with-candidate-code }}
-        id: fetch-master
+      - name: Setup pointer to candidate branch
+        id: candidate-branch
         run: |
-          git fetch origin ${{ inputs.branch-with-candidate-code }}
-          echo "LATEST_CANDIDATE_COMMIT=$(git rev-parse origin/${{ inputs.branch-with-candidate-code }})" >> $GITHUB_OUTPUT
+          # Fall back to the default branch of the repository when a candidate branch is not provided.
+          if [[ -z "${{ inputs.branch-with-candidate-code }}" ]]; then
+            DEFAULT_BRANCH=$(./simple-release-notes/release_manager.py default-branch)
+            echo "BRANCH=$DEFAULT_BRANCH" >> $GITHUB_ENV
+          else
+            echo "BRANCH=${{ steps.candidate-branch.outputs.BRANCH >> $GITHUB_ENV
+          fi
+
+      - name: Fetch latest commit from ${{ steps.candidate-branch.outputs.BRANCH }}
+        id: fetch
+        run: |
+          git fetch origin ${{ steps.candidate-branch.outputs.DEFAULT_BRANCH }}
+          echo "LATEST_CANDIDATE_COMMIT=$(git rev-parse origin/${{ steps.candidate-branch.outputs.BRANCH }})" >> $GITHUB_OUTPUT
 
       - name: Sync release-candidate tag
         shell: bash
