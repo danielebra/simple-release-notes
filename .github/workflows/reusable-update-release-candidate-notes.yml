@@ -4,6 +4,13 @@ on:
     inputs:
       branch-with-candidate-code:
         type: string
+    outputs:
+      CANDIDATE_BRANCH:
+        value: ${{ jobs.update-candidate.outputs.CANDIDATE_BRANCH }}
+        description: The branch that was used to generate release notes from
+      CANDIDATE_COMMIT:
+        value: ${{ jobs.update-candidate.outputs.CANDIDATE_COMMIT }}
+        description: The latest commit hash from the candidate branch
   workflow_dispatch:
     inputs:
       branch-with-candidate-code:
@@ -11,32 +18,60 @@ on:
         type: string
 
 jobs:
-  update:
+  update-candidate:
     name: Update Candidate Release Notes
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: write
+    outputs:
+      CANDIDATE_BRANCH: ${{ steps.candidate-branch.outputs.BRANCH }}
+      CANDIDATE_COMMIT: ${{ steps.fetch.outputs.LATEST_CANDIDATE_COMMIT }}
 
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+
+      # We forcefully clone to retrieve the release_manager.py, so that it is available in consuming repositories
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          repository: "danielebra/simple-release-notes"
+          branch: enrich-notes
+          path: simple-release-notes
 
       - name: Set up Git
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
 
-      - name: Fetch latest commit from ${{ inputs.branch-with-candidate-code }}
-        id: fetch-master
+      - name: Setup pointer to candidate branch
+        id: candidate-branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SPECIFIED_BRANCH: ${{ inputs.branch-with-candidate-code }}
         run: |
-          git fetch origin ${{ inputs.branch-with-candidate-code }}
-          echo "LATEST_CANDIDATE_COMMIT=$(git rev-parse origin/${{ inputs.branch-with-candidate-code }})" >> $GITHUB_OUTPUT
+          # Fall back to the default branch of the repository when a candidate branch is not provided.
+          if [[ -z "${SPECIFIED_BRANCH}" ]]; then
+            DEFAULT_BRANCH=$(python3 ./simple-release-notes/release_manager.py default-branch)
+            echo "Falling back the default branch of ${DEFAULT_BRANCH}"
+            echo "BRANCH=${DEFAULT_BRANCH}" >> $GITHUB_OUTPUT
+          else
+            echo "Using the provided branch of ${SPECIFIED_BRANCH}"
+            echo "BRANCH=$SPECIFIED_BRANCH" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Fetch latest commit from ${{ steps.candidate-branch.outputs.BRANCH }}
+        id: fetch
+        run: |
+          git fetch origin ${{ steps.candidate-branch.outputs.BRANCH }}
+          echo "LATEST_CANDIDATE_COMMIT=$(git rev-parse origin/${{ steps.candidate-branch.outputs.BRANCH }})" >> $GITHUB_OUTPUT
 
       - name: Sync release-candidate tag
         shell: bash
         run: |
-          git tag -fa release-candidate origin/${{ inputs.branch-with-candidate-code }} -m "Update release-candidate tag"
+          git tag -fa release-candidate origin/${{ steps.candidate-branch.outputs.BRANCH }} -m "Update release-candidate tag"
           git push origin refs/tags/release-candidate --force
 
       - name: Update release candidate
@@ -44,4 +79,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
         shell: bash
-        run: python3 release_manager.py candidate update
+        run: python3 ./simple-release-notes/release_manager.py candidate update

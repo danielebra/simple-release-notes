@@ -6,13 +6,20 @@ on:
         required: true
         type: string
         description: Tag to be used as the latest release anchor point. Can be new or existing.
+      auto-clear-release-candidate-notes:
+        type: boolean
+        default: true
+        description: Disable this to prevent the auto management of release candidate notes
   workflow_dispatch:
     inputs:
       tag:
         required: true
         type: string
         description: Tag to be used as the latest release anchor point. Can be new or existing.
-
+      auto-clear-release-candidate-notes:
+        type: boolean
+        default: true
+        description: Disable this to prevent the auto management of release candidate notes
 jobs:
   create-release:
     name: Create Release Notes
@@ -24,6 +31,13 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+
+      # We forcefully clone to retrieve the release_manager.py, so that it is available in consuming repositories
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          repository: "danielebra/simple-release-notes"
+          path: simple-release-notes
 
       - name: Create Release
         env:
@@ -43,7 +57,15 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
+      # We forcefully clone to retrieve the release_manager.py, so that it is available in consuming repositories
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          repository: "danielebra/simple-release-notes"
+          path: simple-release-notes
+
       - name: Clear Candidate
+        if: ${{ inputs.auto-clear-release-candidate-notes == false }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
