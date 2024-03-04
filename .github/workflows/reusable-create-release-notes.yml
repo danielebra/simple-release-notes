@@ -6,13 +6,20 @@ on:
         required: true
         type: string
         description: Tag to be used as the latest release anchor point. Can be new or existing.
+      auto-clear-release-candidate-notes:
+        type: boolean
+        default: true
+        description: Disable this to prevent the auto management of release candidate notes
   workflow_dispatch:
     inputs:
       tag:
         required: true
         type: string
         description: Tag to be used as the latest release anchor point. Can be new or existing.
-
+      auto-clear-release-candidate-notes:
+        type: boolean
+        default: true
+        description: Disable this to prevent the auto management of release candidate notes
 jobs:
   create-release:
     name: Create Release Notes
@@ -58,6 +65,7 @@ jobs:
           path: simple-release-notes
 
       - name: Clear Candidate
+        if: ${{ inputs.auto-clear-release-candidate-notes == false }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
