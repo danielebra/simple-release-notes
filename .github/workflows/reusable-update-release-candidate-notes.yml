@@ -59,7 +59,7 @@ jobs:
             DEFAULT_BRANCH=$(./simple-release-notes/release_manager.py default-branch)
             echo "BRANCH=$DEFAULT_BRANCH" >> $GITHUB_ENV
           else
-            echo "BRANCH=${{ steps.candidate-branch.outputs.BRANCH >> $GITHUB_ENV
+            echo "BRANCH=${{ steps.candidate-branch.outputs.BRANCH }}" >> $GITHUB_ENV
           fi
 
       - name: Fetch latest commit from ${{ steps.candidate-branch.outputs.BRANCH }}
