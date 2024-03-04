@@ -119,7 +119,7 @@ class Github:
         return response.json()["tag_name"]
 
     def get_default_branch(self) -> str:
-        url = f"https://api.github.com/repos/{self._REPO}/"
+        url = f"https://api.github.com/repos/{self._REPO}"
         response = requests.get(url, headers=self._headers)
         response.raise_for_status()
         data = response.json()
