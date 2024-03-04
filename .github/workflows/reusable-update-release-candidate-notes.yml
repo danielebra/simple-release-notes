@@ -36,8 +36,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
         with:
-          repository: "danielebra/simple-release-notes"
-          branch: enrich-notes
+          repository: "prezzee/simple-release-notes"
           path: simple-release-notes
 
       - name: Set up Git
