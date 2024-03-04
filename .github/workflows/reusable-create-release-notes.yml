@@ -52,6 +52,7 @@ jobs:
     permissions:
       id-token: write
       contents: write
+    if: ${{ inputs.auto-clear-release-candidate-notes == true }}
 
     steps:
       - name: Check out code
@@ -65,7 +66,6 @@ jobs:
           path: simple-release-notes
 
       - name: Clear Candidate
-        if: ${{ inputs.auto-clear-release-candidate-notes == false }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
