@@ -30,7 +30,7 @@ jobs:
     outputs:
       CANDIDATE_BRANCH: ${{ steps.candidate-branch.outputs.BRANCH }}
       CANDIDATE_COMMIT: ${{ steps.fetch.outputs.LATEST_CANDIDATE_COMMIT }}
-      URL: ${{ steps.candidate-branch.outputs.URL }}
+      URL: ${{ steps.update.outputs.URL }}
 
     steps:
       - name: Check out code
@@ -78,6 +78,7 @@ jobs:
           git push origin refs/tags/release-candidate --force
 
       - name: Update release candidate
+        id: update
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
