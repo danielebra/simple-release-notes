@@ -2,6 +2,41 @@
 
 A batteries-included and opinionated drop-in solution to generating and managing github release notes.
 
+## Overview
+
+Two main workflows
+
+### `reusable-update-release-candidate-notes.yml`
+
+#### Inputs
+
+| Input                        | Required | Type   | Default | Description                                                                                                                             |
+|------------------------------|----------|--------|---------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| `branch-with-candidate-code` | No       | string |         | Optionally provide a specific branch that contains the candidate code, otherwise the default branch of the repository will be selected. |
+
+#### Outputs
+
+| Output             | Description                                             |
+|--------------------|---------------------------------------------------------|
+| `CANDIDATE_BRANCH` | The branch that was used to generate release notes from |
+| `CANDIDATE_COMMIT` | The latest commit hash from the candidate branch        |
+| `URL`              | Link to the release candidate                           |
+
+### `reusable-create-release-notes.yml`
+
+#### Inputs
+
+| Input                                | Required | Type    | Default | Description                                                  |
+|--------------------------------------|----------|---------|---------|--------------------------------------------------------------|
+| `tag`                                | Yes      | string  |         | Tag to associate the release to. Can be new or existing.     |
+| `auto-clear-release-candidate-notes` | No       | boolean | `true`  | Whether the notes of the release candidate should be cleared |
+
+#### Outputs
+
+| Output | Description         |
+|--------|---------------------|
+| `URL`  | Link to the release |
+
 ## Setup
 
 ### `changelog` via `release.yml`
