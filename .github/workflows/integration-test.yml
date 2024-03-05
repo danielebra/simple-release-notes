@@ -6,9 +6,6 @@ on:
         description: Branch to use as the candidate delta
         type: string
         required: true
-  push:
-    branches:
-      - "add-link-output"
 jobs:
   candidate-specified:
     name: Candidate with specified branch
