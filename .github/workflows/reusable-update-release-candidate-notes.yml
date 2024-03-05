@@ -83,5 +83,6 @@ jobs:
           REPO: ${{ github.repository }}
         shell: bash
         run: |
+          set -e
           URL=$(python3 ./simple-release-notes/release_manager.py candidate update)
           echo "URL=$URL" >> $GITHUB_OUTPUT
