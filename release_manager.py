@@ -11,6 +11,9 @@ class InfoFilter(logging.Filter):
     def filter(self, record):
         return record.levelno == logging.INFO
 
+class SimpleReleaseNotesError(Exception):
+    pass
+
 
 # Only route info logs to stdout, the rest goes to stderr
 LOGGER = logging.getLogger(__name__)
@@ -64,11 +67,12 @@ class Github:
         response = requests.post(url, json=data, headers=self._headers)
         if response.status_code == 201:
             LOGGER.debug(f"Release created for tag: {release_tag}")
+            return response.json()
         else:
             LOGGER.error(
                 f"Failed to create release for {release_tag}: {response.content}"
             )
-        return response.json()
+            raise SimpleReleaseNotesError("Failed to create release")
 
     def update_release(
         self,
@@ -105,6 +109,7 @@ class Github:
             LOGGER.error(
                 f"Failed to update release for {release_id}: {response.json()}"
             )
+            raise SimpleReleaseNotesError("Failed to update release")
         return response.json()
 
     def generate_release_notes(
@@ -119,7 +124,7 @@ class Github:
         response = requests.post(url, json=data, headers=self._headers)
         if response.status_code != 200:
             LOGGER.error(f"Failed to generate release notes for {release_tag}")
-            return None
+            raise SimpleReleaseNotesError("Failed to generate release notes")
         payload = response.json()
         return {"title": payload["name"], "body": payload["body"]}
 
