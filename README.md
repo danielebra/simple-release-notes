@@ -62,7 +62,6 @@ jobs:
     permissions:
       id-token: write
       contents: write
-    secrets: inherit
     uses: danielebra/simple-release-notes/.github/workflows/reusable-update-release-candidate-notes.yml
     with:
       branch-with-candidate-code: main
@@ -85,7 +84,6 @@ jobs:
     permissions:
       id-token: write
       contents: write
-    secrets: inherit
     uses: danielebra/simple-release-notes/.github/workflows/reusable-create-release-notes.yml
     with:
       tag: v1.0.0
