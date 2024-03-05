@@ -1,0 +1,79 @@
+name: Integration Test
+on:
+  workflow_dispatch:
+    inputs:
+      candidate-branch:
+        description: Branch to use as the candidate delta
+        type: string
+        required: true
+  push:
+    branches:
+      - "add-link-output"
+jobs:
+  candidate-specified:
+    name: Candidate with specified branch
+    permissions:
+      id-token: write
+      contents: write
+    uses: .github/workflows/reusable-update-release-candidate-notes.yml
+    with:
+      branch-with-candidate-code: ${{ inputs.candidate-branch }}
+
+  candidate-inferred:
+    needs: [candidate-specified]
+    name: Candidate with default branch
+    permissions:
+      id-token: write
+      contents: write
+    uses: .github/workflows/reusable-update-release-candidate-notes.yml
+
+  publish-release-no-candidate:
+    name: Publish live release and don't alter candidate
+    permissions:
+      id-token: write
+      contents: write
+    uses: .github/workflows/reusable-create-release-notes.yml
+    with:
+      auto-clear-release-candidate-notes: false
+
+  publish-release-clear-candidate:
+    needs:
+      [publish-release-no-candidate, candidate-specified, candidate-inferred]
+    name: Publish live release and clear candidate
+    permissions:
+      id-token: write
+      contents: write
+    uses: .github/workflows/reusable-create-release-notes.yml
+
+  assert-url:
+    name: Check Release URLs
+    needs:
+      [
+        candidate-specified,
+        candidate-inferred,
+        publish-release-no-candidate,
+        publish-release-clear-candidate,
+      ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assert Release URLs
+        uses: actions/github-script@v5
+        with:
+          script: |
+            const urls = {
+              'candidate-specified': '${{ needs.candidate-specified.outputs.releaseUrl }}',
+              'candidate-inferred': '${{ needs.candidate-inferred.outputs.releaseUrl }}',
+              'publish-release-no-candidate': '${{ needs.publish-release-no-candidate.outputs.releaseUrl }}',
+              'publish-release-clear-candidate': '${{ needs.publish-release-clear-candidate.outputs.releaseUrl }}',
+            };
+
+            const fetch = require('node-fetch');
+
+            for (const [job, url] of Object.entries(urls)) {
+              console.log(`Checking URL for ${job}: ${url}`);
+              const response = await fetch(url);
+              if (!response.ok) {
+                throw new Error(`Failed to retrieve release ${url}: ${response.statusText}`);
+              }
+              console.log(`URL is valid: ${url}`);
+            }
