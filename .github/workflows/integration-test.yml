@@ -35,7 +35,7 @@ jobs:
     uses: ./.github/workflows/reusable-create-release-notes.yml
     with:
       auto-clear-release-candidate-notes: false
-      tag: ${{ github.run_id }}
+      tag: integration-test-nc-${{ github.run_id }}
 
   publish-release-clear-candidate:
     needs:
@@ -46,7 +46,7 @@ jobs:
       contents: write
     uses: ./.github/workflows/reusable-create-release-notes.yml
     with:
-      tag: ${{ github.run_id }}
+      tag: integration-test-wc-${{ github.run_id }}
 
   assert-url:
     name: Check Release URLs
@@ -80,3 +80,42 @@ jobs:
               }
               console.log(`URL is valid: ${url}`);
             }
+
+  cleanup:
+    name: Cleanup
+    needs: [assert-url]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Resources
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const tags = ['integration-test-nc-${{ github.run_id }}', 'integration-test-wc-${{ github.run_id }}'];
+
+            for (const tag of tags) {
+              // Fetch the release by tag
+              const release = await github.rest.repos.getReleaseByTag({
+                owner,
+                repo,
+                tag,
+              });
+
+              // Delete the release
+              await github.rest.repos.deleteRelease({
+                owner,
+                repo,
+                release_id: release.data.id,
+              });
+
+              // Delete the tag
+              await github.rest.git.deleteRef({
+                owner,
+                repo,
+                ref: `tags/${tag}`,
+              });
+              console.log(`Release and tag deleted: ${tag}`);
+            }
+
