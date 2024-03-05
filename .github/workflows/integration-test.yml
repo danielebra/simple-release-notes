@@ -1,0 +1,122 @@
+name: Integration Test
+on:
+  workflow_dispatch:
+    inputs:
+      candidate-branch:
+        description: Branch to use as the candidate delta
+        type: string
+        required: true
+jobs:
+  candidate-specified:
+    name: Candidate with specified branch
+    permissions:
+      id-token: write
+      contents: write
+    uses: ./.github/workflows/reusable-update-release-candidate-notes.yml
+    with:
+      branch-with-candidate-code: ${{ inputs.candidate-branch }}
+
+  candidate-inferred:
+    needs: [candidate-specified]
+    name: Candidate with default branch
+    permissions:
+      id-token: write
+      contents: write
+    uses: ./.github/workflows/reusable-update-release-candidate-notes.yml
+
+  publish-release-no-candidate:
+    name: Publish live release and don't alter candidate
+    permissions:
+      id-token: write
+      contents: write
+    uses: ./.github/workflows/reusable-create-release-notes.yml
+    with:
+      auto-clear-release-candidate-notes: false
+      tag: integration-test-nc-${{ github.run_id }}
+
+  publish-release-clear-candidate:
+    needs:
+      [publish-release-no-candidate, candidate-specified, candidate-inferred]
+    name: Publish live release and clear candidate
+    permissions:
+      id-token: write
+      contents: write
+    uses: ./.github/workflows/reusable-create-release-notes.yml
+    with:
+      tag: integration-test-wc-${{ github.run_id }}
+
+  assert-url:
+    name: Check Release URLs
+    needs:
+      [
+        candidate-specified,
+        candidate-inferred,
+        publish-release-no-candidate,
+        publish-release-clear-candidate,
+      ]
+    permissions:
+      id-token: write
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assert Release URLs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const urls = {
+              'candidate-specified': '${{ needs.candidate-specified.outputs.URL }}',
+              'candidate-inferred': '${{ needs.candidate-inferred.outputs.URL }}',
+              'publish-release-no-candidate': '${{ needs.publish-release-no-candidate.outputs.URL }}',
+              'publish-release-clear-candidate': '${{ needs.publish-release-clear-candidate.outputs.URL }}',
+            };
+
+            for (const [job, url] of Object.entries(urls)) {
+              console.log(`Checking URL for ${job}: ${url}`);
+              const response = await fetch(url);
+              if (!response.ok) {
+                throw new Error(`Failed to retrieve release ${url}: ${response.statusText}`);
+              }
+              console.log(`URL is valid: ${url}`);
+            }
+
+  cleanup:
+    name: Cleanup
+    needs: [assert-url]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - name: Delete Resources
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const tags = ['integration-test-nc-${{ github.run_id }}', 'integration-test-wc-${{ github.run_id }}'];
+
+            for (const tag of tags) {
+              // Fetch the release by tag
+              const release = await github.rest.repos.getReleaseByTag({
+                owner,
+                repo,
+                tag,
+              });
+
+              // Delete the release
+              await github.rest.repos.deleteRelease({
+                owner,
+                repo,
+                release_id: release.data.id,
+              });
+
+              // Delete the tag
+              await github.rest.git.deleteRef({
+                owner,
+                repo,
+                ref: `tags/${tag}`,
+              });
+              console.log(`Release and tag deleted: ${tag}`);
+            }
+

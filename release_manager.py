@@ -1,8 +1,37 @@
 import argparse
+import logging
 import os
+import sys
 from typing import Dict, Optional
 
 import requests
+
+
+class InfoFilter(logging.Filter):
+    def filter(self, record):
+        return record.levelno == logging.INFO
+
+class SimpleReleaseNotesError(Exception):
+    pass
+
+
+# Only route info logs to stdout, the rest goes to stderr
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.DEBUG)
+
+info_handler = logging.StreamHandler(sys.stdout)
+info_handler.setLevel(logging.INFO)
+info_handler.addFilter(InfoFilter())
+info_format = logging.Formatter("%(message)s")
+info_handler.setFormatter(info_format)
+
+other_handler = logging.StreamHandler(sys.stderr)
+other_handler.setLevel(logging.DEBUG)
+other_format = logging.Formatter("%(levelname)s - %(message)s")
+other_handler.setFormatter(other_format)
+
+LOGGER.addHandler(info_handler)
+LOGGER.addHandler(other_handler)
 
 
 class Github:
@@ -37,10 +66,13 @@ class Github:
         }
         response = requests.post(url, json=data, headers=self._headers)
         if response.status_code == 201:
-            print(f"Release created for tag: {release_tag}")
+            LOGGER.debug(f"Release created for tag: {release_tag}")
+            return response.json()
         else:
-            print(f"Failed to create release for {release_tag}: {response.content}")
-        return response.json()
+            LOGGER.error(
+                f"Failed to create release for {release_tag}: {response.content}"
+            )
+            raise SimpleReleaseNotesError("Failed to create release")
 
     def update_release(
         self,
@@ -72,9 +104,13 @@ class Github:
 
         response = requests.patch(url, json=data, headers=self._headers)
         if response.status_code == 200:
-            print(f"Release updated for id: {release_id}")
+            LOGGER.debug(f"Release updated for id: {release_id}")
         else:
-            print(f"Failed to update release for {release_id}: {response.json()}")
+            LOGGER.error(
+                f"Failed to update release for {release_id}: {response.json()}"
+            )
+            raise SimpleReleaseNotesError("Failed to update release")
+        return response.json()
 
     def generate_release_notes(
         self, release_tag: str, previous_tag: Optional[str]
@@ -87,8 +123,8 @@ class Github:
             data["previous_tag_name"] = previous_tag
         response = requests.post(url, json=data, headers=self._headers)
         if response.status_code != 200:
-            print(f"Failed to generate release notes for {release_tag}")
-            return None
+            LOGGER.error(f"Failed to generate release notes for {release_tag}")
+            raise SimpleReleaseNotesError("Failed to generate release notes")
         payload = response.json()
         return {"title": payload["name"], "body": payload["body"]}
 
@@ -104,7 +140,9 @@ class Github:
         if response.status_code == 404:
             return None
         if response.status_code != 200:
-            print(f"Unexpected response {response.status_code} {response.content}")
+            LOGGER.error(
+                f"Unexpected response {response.status_code} {response.content}"
+            )
             return None
         return response.json()
 
@@ -146,6 +184,12 @@ class NewRelease:
         )
 
 
+def extract_release_link_from_response(response: Optional[dict]) -> Optional[str]:
+    if not response:
+        return None
+    return response.get("html_url")
+
+
 class ReleaseCandidate:
     TAG = "release-candidate"
 
@@ -167,14 +211,14 @@ class ReleaseCandidate:
             make_latest="false",
         )
 
-    def update_release_candidate(self):
+    def update_release_candidate(self) -> dict:
         latest_release = self.github.get_latest_release_tag()
         release_notes = self.github.generate_release_notes(
             "release-candidate", latest_release
         )
         if not release_notes:
             raise RuntimeError("Release notes did not generate")
-        self.github.update_release(
+        return self.github.update_release(
             release_id=self.release_id,
             title="Release Candidate",
             body=release_notes["body"],
@@ -183,8 +227,8 @@ class ReleaseCandidate:
             make_latest="false",
         )
 
-    def empty(self):
-        self.github.update_release(
+    def empty(self) -> dict:
+        return self.github.update_release(
             release_id=self.release_id,
             title="Release Candidate",
             body="Nothing here at the moment...",
@@ -244,15 +288,17 @@ def main():
     if args.command == "candidate":
         candidate_handler = ReleaseCandidate(github)
         if args.candidate_command == "update":
-            return candidate_handler.update_release_candidate()
+            return extract_release_link_from_response(
+                candidate_handler.update_release_candidate()
+            )
         if args.candidate_command == "clear":
-            return candidate_handler.empty()
+            return extract_release_link_from_response(candidate_handler.empty())
 
     if args.command == "release":
-        return NewRelease(github).create(args.tag_name)
+        return extract_release_link_from_response(NewRelease(github).create(args.tag_name))
 
     return parser.print_help()
 
 
 if __name__ == "__main__":
-    print(main())
+    LOGGER.info(main())
