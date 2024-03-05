@@ -15,7 +15,7 @@ jobs:
     permissions:
       id-token: write
       contents: write
-    uses: .github/workflows/reusable-update-release-candidate-notes.yml
+    uses: ./.github/workflows/reusable-update-release-candidate-notes.yml
     with:
       branch-with-candidate-code: ${{ inputs.candidate-branch }}
 
@@ -25,16 +25,17 @@ jobs:
     permissions:
       id-token: write
       contents: write
-    uses: .github/workflows/reusable-update-release-candidate-notes.yml
+    uses: ./.github/workflows/reusable-update-release-candidate-notes.yml
 
   publish-release-no-candidate:
     name: Publish live release and don't alter candidate
     permissions:
       id-token: write
       contents: write
-    uses: .github/workflows/reusable-create-release-notes.yml
+    uses: ./.github/workflows/reusable-create-release-notes.yml
     with:
       auto-clear-release-candidate-notes: false
+      tag: ${{ github.run_id }}
 
   publish-release-clear-candidate:
     needs:
@@ -43,7 +44,9 @@ jobs:
     permissions:
       id-token: write
       contents: write
-    uses: .github/workflows/reusable-create-release-notes.yml
+    uses: ./.github/workflows/reusable-create-release-notes.yml
+    with:
+      tag: ${{ github.run_id }}
 
   assert-url:
     name: Check Release URLs
