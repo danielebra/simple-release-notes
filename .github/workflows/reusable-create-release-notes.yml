@@ -10,6 +10,10 @@ on:
         type: boolean
         default: true
         description: Disable this to prevent the auto management of release candidate notes
+    outputs:
+      URL:
+        value: ${{ jobs.create-release.outputs.URL }}
+        description: Link to the release candidate
   workflow_dispatch:
     inputs:
       tag:
@@ -27,6 +31,8 @@ jobs:
     permissions:
       id-token: write
       contents: write
+    outputs:
+      URL: ${{ steps.release.outputs.URL }}
 
     steps:
       - name: Check out code
@@ -40,11 +46,14 @@ jobs:
           path: simple-release-notes
 
       - name: Create Release
+        id: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
         shell: bash
-        run: python3 ./simple-release-notes/release_manager.py release ${{ inputs.tag }}
+        run: |
+          URL=$(python3 ./simple-release-notes/release_manager.py release ${{ inputs.tag }})
+          echo "URL=$URL" >> $GITHUB_OUTPUT
 
   clear-candidate:
     name: Clear Release Candidate

@@ -11,6 +11,9 @@ on:
       CANDIDATE_COMMIT:
         value: ${{ jobs.update-candidate.outputs.CANDIDATE_COMMIT }}
         description: The latest commit hash from the candidate branch
+      URL:
+        value: ${{ jobs.update-candidate.outputs.URL }}
+        description: Link to the release candidate
   workflow_dispatch:
     inputs:
       branch-with-candidate-code:
@@ -27,6 +30,7 @@ jobs:
     outputs:
       CANDIDATE_BRANCH: ${{ steps.candidate-branch.outputs.BRANCH }}
       CANDIDATE_COMMIT: ${{ steps.fetch.outputs.LATEST_CANDIDATE_COMMIT }}
+      URL: ${{ steps.candidate-branch.outputs.URL }}
 
     steps:
       - name: Check out code
@@ -78,4 +82,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
         shell: bash
-        run: python3 ./simple-release-notes/release_manager.py candidate update
+        run: |
+          URL=$(python3 ./simple-release-notes/release_manager.py candidate update)
+          echo "URL=$URL" >> $GITHUB_OUTPUT
