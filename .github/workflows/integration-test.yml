@@ -57,6 +57,9 @@ jobs:
         publish-release-no-candidate,
         publish-release-clear-candidate,
       ]
+    permissions:
+      id-token: write
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - name: Assert Release URLs
@@ -69,8 +72,6 @@ jobs:
               'publish-release-no-candidate': '${{ needs.publish-release-no-candidate.outputs.URL }}',
               'publish-release-clear-candidate': '${{ needs.publish-release-clear-candidate.outputs.URL }}',
             };
-
-            const fetch = require('node-fetch');
 
             for (const [job, url] of Object.entries(urls)) {
               console.log(`Checking URL for ${job}: ${url}`);
@@ -86,6 +87,9 @@ jobs:
     needs: [assert-url]
     if: always()
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
     steps:
       - name: Delete Resources
         uses: actions/github-script@v7
