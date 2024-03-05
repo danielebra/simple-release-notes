@@ -10,7 +10,6 @@ jobs:
     permissions:
       id-token: write
       contents: write
-    secrets: inherit
     uses: ./.github/workflows/reusable-update-release-candidate-notes.yml
     with:
       branch-with-candidate-code: main
