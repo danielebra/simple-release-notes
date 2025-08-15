@@ -1,6 +1,10 @@
 name: Clear Release Candidate
 on:
   workflow_call:
+    outputs:
+      URL:
+        value: ${{ jobs.clear-candidate.outputs.URL }}
+        description: Link to the release candidate
   workflow_dispatch:
 
 jobs:
@@ -27,4 +31,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
         shell: bash
-        run: python3 ./simple-release-notes/release_manager.py candidate clear
+        run: |
+          set -e
+          URL=$(python3 ./simple-release-notes/release_manager.py candidate clear)
+          echo "URL=$URL" >> $GITHUB_OUTPUT
