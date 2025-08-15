@@ -45,6 +45,13 @@ jobs:
     with:
       tag: integration-test-wc-${{ github.run_id }}
 
+  explicitly-clear-release-canditate:
+    needs: [publish-release-no-candidate]
+    permissions:
+      id-token: write
+      contents: write
+    uses: ./.github/workflows/reusable-clear-release-candidate.yml
+
   assert-url:
     name: Check Release URLs
     needs:
@@ -53,6 +60,7 @@ jobs:
         candidate-inferred,
         publish-release-no-candidate,
         publish-release-clear-candidate,
+        explicitly-clear-release-canditate,
       ]
     permissions:
       id-token: write
