@@ -57,27 +57,9 @@ jobs:
           echo "URL=$URL" >> $GITHUB_OUTPUT
 
   clear-candidate:
+    if: ${{ inputs.auto-clear-release-candidate-notes == true }}
     name: Clear Release Candidate
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/reusable-clear-release-candidate.yml
     permissions:
       id-token: write
       contents: write
-    if: ${{ inputs.auto-clear-release-candidate-notes == true }}
-
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-
-      # We forcefully clone to retrieve the release_manager.py, so that it is available in consuming repositories
-      - name: Check out code
-        uses: actions/checkout@v4
-        with:
-          repository: "danielebra/simple-release-notes"
-          path: simple-release-notes
-
-      - name: Clear Candidate
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-        shell: bash
-        run: python3 ./simple-release-notes/release_manager.py candidate clear
