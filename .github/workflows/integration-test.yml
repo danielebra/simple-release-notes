@@ -46,7 +46,8 @@ jobs:
       tag: integration-test-wc-${{ github.run_id }}
 
   explicitly-clear-release-canditate:
-    needs: [publish-release-no-candidate]
+    needs: [publish-release-clear-candidate]
+    name: User can request reset of release-candidate
     permissions:
       id-token: write
       contents: write
@@ -76,6 +77,7 @@ jobs:
               'candidate-inferred': '${{ needs.candidate-inferred.outputs.URL }}',
               'publish-release-no-candidate': '${{ needs.publish-release-no-candidate.outputs.URL }}',
               'publish-release-clear-candidate': '${{ needs.publish-release-clear-candidate.outputs.URL }}',
+              'explicitly-clear-release-canditate': '${{ needs.explicitly-clear-release-canditate.outputs.URL }}',
             };
 
             for (const [job, url] of Object.entries(urls)) {
