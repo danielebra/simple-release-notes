@@ -130,3 +130,15 @@ The default behaviour of the `reusable-create-release-notes` workflow will autom
 with:
   auto-clear-release-candidate-notes: false
 ```
+
+To take control of clearing the release notes in your own workflow, add the following job:
+
+```
+jobs:
+  clear-candidate:
+    name: Clear Release Candidate
+    uses: danielebra/simple-release-notes/.github/workflows/reusable-clear-release-candidate.yml
+    permissions:
+      id-token: write
+      contents: write
+```
